@@ -24,6 +24,13 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 from . import routes
+from . import models
+from . import api
+from . import user_loader
+
+with app.app_context():
+    db.create_all()
+
 
 if __name__ == '__main__':
     app.run(debug=True)
