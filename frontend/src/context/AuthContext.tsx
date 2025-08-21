@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check if user is logged in
     const checkAuth = async () => {
       try {
-        const response = await axios.get(`${API_URL}/user`, {
+        const response = await axios.get(`${API_URL}/auth/user`, {
           withCredentials: true
         });
         setUser(response.data);
@@ -46,10 +46,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, 
-        { email, password },
+      const response = await axios.post(`${API_URL}/auth/login`, 
+        { username, password },
         {
           headers: {
             'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       );
       // Get user data after successful login
-      const userResponse = await axios.get(`${API_URL}/user`, {
+      const userResponse = await axios.get(`${API_URL}/auth/user`, {
         withCredentials: true
       });
       setUser(userResponse.data);
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (username: string, email: string, password: string) => {
     try {
-      const response = await axios.post(`${API_URL}/register`, { 
+      const response = await axios.post(`${API_URL}/auth/register`, { 
         username, 
         email, 
         password 
@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         withCredentials: true
       });
       // Auto-login after registration
-      await login(email, password);
+      await login(username, password);
       return response;
     } catch (error) {
       console.error('Registration failed', error);
@@ -90,9 +90,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    // localStorage.removeItem('token');
+  const logout = async () => {
+    try {
+      await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
+    } catch (error) {
+      console.error('Logout failed', error);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (

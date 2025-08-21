@@ -1,10 +1,13 @@
 from flask import request, jsonify, Blueprint
 from flask_cors import cross_origin
-from app import app, db, bcrypt
-from models import User
 from flask_login import login_user, logout_user, login_required, current_user
+from app import db, bcrypt
+from models import User
 
-@app.route('/api/register', methods=['POST', 'OPTIONS'])
+# Create auth blueprint
+auth_bp = Blueprint('auth', __name__)
+
+@auth_bp.route('/register', methods=['POST', 'OPTIONS'])
 @cross_origin(origin='http://localhost:3000', headers=['Content-Type', 'Authorization'])
 def register():
     data = request.get_json()
@@ -21,7 +24,7 @@ def register():
     db.session.commit()
     return jsonify({'message': 'User registered successfully'}), 201
 
-@app.route('/api/login', methods=['POST', 'OPTIONS'])
+@auth_bp.route('/login', methods=['POST', 'OPTIONS'])
 @cross_origin(origin='http://localhost:3000', headers=['Content-Type', 'Authorization'], supports_credentials=True)
 def login():
     data = request.get_json()
@@ -33,13 +36,13 @@ def login():
         return jsonify({'message': 'Login successful'}), 200
     return jsonify({'error': 'Invalid credentials'}), 401
 
-@app.route('/api/logout', methods=['POST'])
+@auth_bp.route('/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()
     return jsonify({'message': 'Logged out successfully'}), 200
 
-@app.route('/api/user')
+@auth_bp.route('/user')
 @login_required
 def get_current_user():
     return jsonify({

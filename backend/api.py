@@ -1,16 +1,19 @@
-from app import app, db
-from flask import request, jsonify
+from flask import request, jsonify, Blueprint
 from flask_login import login_required, current_user
+from app import db
 from models import Clothing, Outfit
 import os
 from werkzeug.utils import secure_filename
+
+# Create API blueprint
+api_bp = Blueprint('api', __name__)
 
 ALLOWED_EXTENSIONS = {'png'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/api/upload_clothing', methods=['POST'])
+@api_bp.route('/upload_clothing', methods=['POST'])
 @login_required
 def upload_clothing():
     if 'file' not in request.files:
@@ -30,7 +33,7 @@ def upload_clothing():
     db.session.commit()
     return jsonify({'message': 'Clothing uploaded successfully'}), 201
 
-@app.route('/api/get_clothes', methods=['GET'])
+@api_bp.route('/clothes', methods=['GET'])
 @login_required
 def get_clothes():
     clothes = Clothing.query.filter_by(user_id=current_user.id).all()
@@ -45,7 +48,7 @@ def get_clothes():
         } for c in clothes
     ])
 
-@app.route('/api/save_outfit', methods=['POST'])
+@api_bp.route('/outfits', methods=['POST'])
 @login_required
 def save_outfit():
     data = request.get_json()
@@ -59,7 +62,7 @@ def save_outfit():
     db.session.commit()
     return jsonify({'message': 'Outfit saved successfully'}), 201
 
-@app.route('/api/get_outfits', methods=['GET'])
+@api_bp.route('/outfits', methods=['GET'])
 @login_required
 def get_outfits():
     outfits = Outfit.query.filter_by(user_id=current_user.id).all()
