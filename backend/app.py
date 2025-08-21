@@ -23,10 +23,10 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-from . import routes
-from . import models
-from . import api
-from . import user_loader
+import routes
+import models
+import api
+import user_loader
 
 with app.app_context():
     db.create_all()

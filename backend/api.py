@@ -1,7 +1,7 @@
-from .app import app, db
+from app import app, db
 from flask import request, jsonify
 from flask_login import login_required, current_user
-from .models import Clothing, Outfit
+from models import Clothing, Outfit
 import os
 from werkzeug.utils import secure_filename
 

@@ -1,6 +1,6 @@
 from flask import request, jsonify, Blueprint
-from .app import app, db, bcrypt
-from .models import User
+from app import app, db, bcrypt
+from models import User
 from flask_login import login_user, logout_user, login_required, current_user
 
 @app.route('/api/register', methods=['POST'])
