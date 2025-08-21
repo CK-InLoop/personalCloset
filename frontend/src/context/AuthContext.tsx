@@ -9,8 +9,8 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
+  register: (username: string, email: string, password: string) => Promise<any>;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -20,6 +20,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = 'http://localhost:5000/api';
 
+// Configure axios to include credentials
+axios.defaults.withCredentials = true;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,16 +31,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check if user is logged in
     const checkAuth = async () => {
       try {
-        // Implement token check if using JWT
-        // const token = localStorage.getItem('token');
-        // if (token) {
-        //   const response = await axios.get(`${API_URL}/me`, {
-        //     headers: { Authorization: `Bearer ${token}` },
-        //   });
-        //   setUser(response.data.user);
-        // }
+        const response = await axios.get(`${API_URL}/user`, {
+          withCredentials: true
+        });
+        setUser(response.data);
       } catch (error) {
         console.error('Auth check failed', error);
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -48,9 +48,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, { email, password });
-      setUser(response.data.user);
-      // localStorage.setItem('token', response.data.token);
+      const response = await axios.post(`${API_URL}/login`, 
+        { email, password },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true
+        }
+      );
+      // Get user data after successful login
+      const userResponse = await axios.get(`${API_URL}/user`, {
+        withCredentials: true
+      });
+      setUser(userResponse.data);
+      return response;
     } catch (error) {
       console.error('Login failed', error);
       throw error;
@@ -59,9 +71,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (username: string, email: string, password: string) => {
     try {
-      await axios.post(`${API_URL}/register`, { username, email, password });
+      const response = await axios.post(`${API_URL}/register`, { 
+        username, 
+        email, 
+        password 
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true
+      });
       // Auto-login after registration
       await login(email, password);
+      return response;
     } catch (error) {
       console.error('Registration failed', error);
       throw error;

@@ -1,9 +1,11 @@
 from flask import request, jsonify, Blueprint
+from flask_cors import cross_origin
 from app import app, db, bcrypt
 from models import User
 from flask_login import login_user, logout_user, login_required, current_user
 
-@app.route('/api/register', methods=['POST'])
+@app.route('/api/register', methods=['POST', 'OPTIONS'])
+@cross_origin(origin='http://localhost:3000', headers=['Content-Type', 'Authorization'])
 def register():
     data = request.get_json()
     username = data.get('username')
@@ -19,7 +21,8 @@ def register():
     db.session.commit()
     return jsonify({'message': 'User registered successfully'}), 201
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/login', methods=['POST', 'OPTIONS'])
+@cross_origin(origin='http://localhost:3000', headers=['Content-Type', 'Authorization'], supports_credentials=True)
 def login():
     data = request.get_json()
     username = data.get('username')
@@ -35,3 +38,12 @@ def login():
 def logout():
     logout_user()
     return jsonify({'message': 'Logged out successfully'}), 200
+
+@app.route('/api/user')
+@login_required
+def get_current_user():
+    return jsonify({
+        'id': current_user.id,
+        'username': current_user.username,
+        'email': current_user.email
+    }), 200
