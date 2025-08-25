@@ -1,7 +1,7 @@
 from flask import request, jsonify, Blueprint
 from flask_cors import cross_origin
 from flask_login import login_user, logout_user, login_required, current_user
-from app import db, bcrypt
+from extensions import db, bcrypt
 from models import User
 
 # Create auth blueprint

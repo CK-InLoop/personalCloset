@@ -2,71 +2,122 @@ interface AvatarProps {
   top?: string;
   bottom?: string;
   onePiece?: string;
+  className?: string;
 }
 
-export default function Avatar({ top, bottom, onePiece }: AvatarProps) {
+export default function Avatar({ top, bottom, onePiece, className = '' }: AvatarProps) {
   return (
-    <div className="relative w-64 h-96 mx-auto">
-      {/* Base Avatar */}
-      <div className="absolute inset-0 bg-gray-200 rounded-lg flex items-center justify-center">
+    <div className={`relative w-64 h-96 mx-auto ${className}`}>
+      <div className="absolute inset-0 bg-white rounded-lg shadow-md flex items-center justify-center p-4">
         <svg 
-          className="w-full h-full text-gray-400" 
-          viewBox="0 0 100 150" 
+          className="w-full h-full" 
+          viewBox="0 0 200 300" 
           fill="none" 
           xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid meet"
         >
-          {/* Base body outline */}
-          <path 
-            d="M50 15C60.5 15 69 23.5 69 34V40C69 50.5 60.5 59 50 59C39.5 59 31 50.5 31 40V34C31 23.5 39.5 15 50 15Z" 
-            fill="#E5E7EB"
-          />
-          <path 
-            d="M35 140V125C35 112.85 44.85 103 57 103H43C30.85 103 21 112.85 21 125V140" 
-            stroke="#9CA3AF" 
-            strokeWidth="2"
-          />
-          
+          {/* Body Outline - More proportional */}
+          <g id="body">
+            {/* Head */}
+            <circle cx="100" cy="60" r="30" fill="#F3D2BD" />
+            
+            {/* Neck */}
+            <rect x="95" y="90" width="10" height="10" fill="#F3D2BD" />
+            
+            {/* Torso */}
+            <path 
+              d="M80 100H120V180H80V100Z" 
+              fill="#F3D2BD"
+              stroke="#D1A58C"
+              strokeWidth="2"
+            />
+            
+            {/* Arms */}
+            <path 
+              d="M120 110L160 90" 
+              stroke="#F3D2BD" 
+              strokeWidth="16" 
+              strokeLinecap="round"
+            />
+            <path 
+              d="M80 110L40 90" 
+              stroke="#F3D2BD" 
+              strokeWidth="16" 
+              strokeLinecap="round"
+            />
+            
+            {/* Legs */}
+            <path 
+              d="M80 180L70 260" 
+              stroke="#F3D2BD" 
+              strokeWidth="16" 
+              strokeLinecap="round"
+            />
+            <path 
+              d="M120 180L130 260" 
+              stroke="#F3D2BD" 
+              strokeWidth="16" 
+              strokeLinecap="round"
+            />
+          </g>
+
           {/* One Piece Outfit */}
           {onePiece && (
-            <image 
-              href={onePiece} 
-              x="15" 
-              y="25" 
-              width="70" 
-              height="100"
-              preserveAspectRatio="xMidYMid meet"
-              className="z-10"
-            />
+            <g id="one-piece">
+              <image 
+                href={onePiece} 
+                x="40" 
+                y="90" 
+                width="120" 
+                height="180"
+                preserveAspectRatio="xMidYMid meet"
+                clipPath="url(#bodyClip)"
+              />
+            </g>
           )}
           
           {/* Top */}
           {top && !onePiece && (
-            <image 
-              href={top} 
-              x="15" 
-              y="25" 
-              width="70" 
-              height="50"
-              preserveAspectRatio="xMidYMid meet"
-              className="z-10"
-            />
+            <g id="top">
+              <image 
+                href={top} 
+                x="40" 
+                y="90" 
+                width="120" 
+                height="90"
+                preserveAspectRatio="xMidYMid meet"
+                clipPath="url(#torsoClip)"
+              />
+            </g>
           )}
           
           {/* Bottom */}
           {bottom && !onePiece && (
-            <image 
-              href={bottom} 
-              x="15" 
-              y="75" 
-              width="70" 
-              height="65"
-              preserveAspectRatio="xMidYMid meet"
-              className="z-10"
-            />
+            <g id="bottom">
+              <image 
+                href={bottom} 
+                x="50" 
+                y="150" 
+                width="100" 
+                height="120"
+                preserveAspectRatio="xMidYMid meet"
+                clipPath="url(#legsClip)"
+              />
+            </g>
           )}
           
-          {/* Head */}
-          <circle cx="50" cy="30" r="15" fill="#F3D2BD" />
+          {/* Clip paths for better image masking */}
+          <defs>
+            <clipPath id="bodyClip">
+              <rect x="40" y="90" width="120" height="180" rx="10" />
+            </clipPath>
+            <clipPath id="torsoClip">
+              <rect x="40" y="90" width="120" height="90" rx="5" />
+            </clipPath>
+            <clipPath id="legsClip">
+              <path d="M50 150H150V270H50V150Z" />
+            </clipPath>
+          </defs>
         </svg>
       </div>
     </div>

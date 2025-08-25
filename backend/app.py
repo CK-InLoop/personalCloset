@@ -1,19 +1,18 @@
 # Closet Organizer Backend
 # Flask application setup
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
-from flask_login import LoginManager
 from flask_cors import CORS
 import os
 
-# Initialize extensions
-db = SQLAlchemy()
-bcrypt = Bcrypt()
-login_manager = LoginManager()
+from extensions import db, bcrypt, login_manager
+from models import User
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, instance_relative_config=True)
     
     # Configure CORS
     CORS(app, resources={
@@ -26,9 +25,17 @@ def create_app():
     })
     
     # Configure application
-    app.config['SECRET_KEY'] = 'your_secret_key_here'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///closet_organizer.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config.from_mapping(
+        SECRET_KEY='dev',
+        SQLALCHEMY_DATABASE_URI='sqlite:///closet_organizer.db',
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    )
+
+    # Create instance folder if it doesn't exist
+    try:
+        os.makedirs(app.instance_path)
+    except OSError:
+        pass
 
     # Initialize extensions with app
     db.init_app(app)
@@ -37,21 +44,18 @@ def create_app():
     login_manager.login_view = 'auth.login'
 
     # Create uploads directory if it doesn't exist
-    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+    UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
     # Import and register blueprints
-    from routes import auth_bp
+    from auth import auth_bp
     from api import api_bp
     
     # Register blueprints with URL prefixes
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(api_bp, url_prefix='/api')
-    
-    # Import models after db initialization to avoid circular imports
-    import models
     
     # Create database tables
     with app.app_context():

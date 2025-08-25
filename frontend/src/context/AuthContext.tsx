@@ -9,9 +9,9 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<any>;
+  login: (username: string, password: string) => Promise<any>;
   register: (username: string, email: string, password: string) => Promise<any>;
-  logout: () => void;
+  logout: () => Promise<any>;
   isAuthenticated: boolean;
   loading: boolean;
 }
@@ -20,7 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = 'http://localhost:5000/api';
 
-// Configure axios to include credentials
+// Configure axios to include credentials for session management
 axios.defaults.withCredentials = true;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -28,76 +28,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
-    const checkAuth = async () => {
+    const checkLoggedIn = async () => {
       try {
-        const response = await axios.get(`${API_URL}/auth/user`, {
-          withCredentials: true
-        });
+        const response = await axios.get(`${API_URL}/auth/user`);
         setUser(response.data);
       } catch (error) {
-        console.error('Auth check failed', error);
         setUser(null);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
-    checkAuth();
+    checkLoggedIn();
   }, []);
 
   const login = async (username: string, password: string) => {
-    try {
-      const response = await axios.post(`${API_URL}/auth/login`, 
-        { username, password },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          withCredentials: true
-        }
-      );
-      // Get user data after successful login
-      const userResponse = await axios.get(`${API_URL}/auth/user`, {
-        withCredentials: true
-      });
-      setUser(userResponse.data);
-      return response;
-    } catch (error) {
-      console.error('Login failed', error);
-      throw error;
-    }
+    const response = await axios.post(`${API_URL}/auth/login`, { username, password });
+    const userData = await axios.get(`${API_URL}/auth/user`);
+    setUser(userData.data);
+    return response;
   };
 
   const register = async (username: string, email: string, password: string) => {
-    try {
-      const response = await axios.post(`${API_URL}/auth/register`, { 
-        username, 
-        email, 
-        password 
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true
-      });
-      // Auto-login after registration
-      await login(username, password);
-      return response;
-    } catch (error) {
-      console.error('Registration failed', error);
-      throw error;
-    }
+    return axios.post(`${API_URL}/auth/register`, { username, email, password });
   };
 
   const logout = async () => {
-    try {
-      await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
-    } catch (error) {
-      console.error('Logout failed', error);
-    } finally {
-      setUser(null);
-    }
+    const response = await axios.post(`${API_URL}/auth/logout`);
+    setUser(null);
+    return response;
   };
 
   return (

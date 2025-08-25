@@ -1,6 +1,6 @@
-from flask import request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint, current_app
 from flask_login import login_required, current_user
-from app import db
+from extensions import db
 from models import Clothing, Outfit
 import os
 from werkzeug.utils import secure_filename
@@ -26,7 +26,7 @@ def upload_clothing():
     if file.filename == '' or not allowed_file(file.filename):
         return jsonify({'error': 'Invalid file'}), 400
     filename = secure_filename(file.filename)
-    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     file.save(save_path)
     clothing = Clothing(filename=filename, category=category, user_id=current_user.id, color=color, season=season, occasion=occasion)
     db.session.add(clothing)
