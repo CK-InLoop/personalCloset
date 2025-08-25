@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
 import Closet from '../components/Closet';
+import ClothingScroller from '../components/ClothingScroller';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -10,6 +11,7 @@ export default function Dashboard() {
   const [selectedTop, setSelectedTop] = useState<string>('');
   const [selectedBottom, setSelectedBottom] = useState<string>('');
   const [selectedOnePiece, setSelectedOnePiece] = useState<string>('');
+  const [clothingItems, setClothingItems] = useState<any[]>([]);
 
   const handleLogout = async () => {
     try {
@@ -39,7 +41,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen bg-gray-100 flex flex-col">
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -67,26 +69,12 @@ export default function Dashboard() {
           </div>
         </div>
       </nav>
-      
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome back, {user.username}!</h2>
-            <p className="text-gray-600">
-              You're logged in as {user.email}. Start organizing your wardrobe by adding items to your closet.
-            </p>
-          </div>
-        </div>
-      </main>
 
-      <div className="py-10">
+      <div className="py-10 flex-grow overflow-y-auto">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Your Virtual Closet</h1>
-            
             {/* Outfit Preview Section */}
             <div className="bg-white p-6 rounded-lg shadow mb-8">
-              <h2 className="text-lg font-medium text-gray-900 mb-6">Your Outfit Preview</h2>
               <div className="flex flex-col items-center">
                 <div className="relative w-full max-w-xs h-96">
                   <Avatar 
@@ -97,23 +85,16 @@ export default function Dashboard() {
                   />
                 </div>
                 
-                {/* Outfit Details */}
-                <div className="mt-6 w-full max-w-xs">
-                  <h3 className="text-md font-medium text-gray-700 mb-2">Selected Items:</h3>
-                  <ul className="space-y-1 text-sm text-gray-600">
-                    {selectedTop && <li>• Top: {selectedTop.split('/').pop()?.replace(/-/g, ' ').replace(/\.\w+$/, '')}</li>}
-                    {selectedBottom && <li>• Bottom: {selectedBottom.split('/').pop()?.replace(/-/g, ' ').replace(/\.\w+$/, '')}</li>}
-                    {selectedOnePiece && <li>• One Piece: {selectedOnePiece.split('/').pop()?.replace(/-/g, ' ').replace(/\.\w+$/, '')}</li>}
-                    {!selectedTop && !selectedBottom && !selectedOnePiece && <li className="text-gray-400">No items selected</li>}
-                  </ul>
-                </div>
+                <ClothingScroller items={clothingItems} onSelectItem={handleSelectItem} category="top" />
+                <ClothingScroller items={clothingItems} onSelectItem={handleSelectItem} category="bottom" />
+
               </div>
             </div>
 
             {/* Closet Section */}
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Your Closet</h2>
-              <Closet onSelectItem={handleSelectItem} />
+              <Closet onSelectItem={handleSelectItem} clothingItems={clothingItems} setClothingItems={setClothingItems} />
             </div>
           </div>
         </main>

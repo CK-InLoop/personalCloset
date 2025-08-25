@@ -10,11 +10,12 @@ interface ClothingItem {
 
 interface ClosetProps {
   onSelectItem: (item: ClothingItem) => void;
+  clothingItems: ClothingItem[];
+  setClothingItems: React.Dispatch<React.SetStateAction<ClothingItem[]>>;
 }
 
-export default function Closet({ onSelectItem }: ClosetProps) {
+export default function Closet({ onSelectItem, clothingItems, setClothingItems }: ClosetProps) {
   const [activeCategory, setActiveCategory] = useState<'top' | 'bottom' | 'one-piece'>('top');
-  const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
 
   const { getRootProps, getInputProps } = useDropzone({
     accept: {
