@@ -1,162 +1,112 @@
-import React, { useRef, useEffect } from 'react';
-import { Pose } from '@mediapipe/pose';
+import React, { useState } from 'react';
 
-// Extend the Window interface to avoid TypeScript errors
-declare global {
-  interface Window {
-    poseInstance?: any;
-  }
-}
+const VirtualTryOn: React.FC = () => {
+  const [userImage, setUserImage] = useState<File | null>(null);
+  const [clothingImage, setClothingImage] = useState<File | null>(null);
+  const [resultImage, setResultImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-interface VirtualTryOnProps {
-  top?: string;
-  bottom?: string;
-  onePiece?: string;
-  className?: string;
-}
+  const handleUserImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setUserImage(e.target.files[0]);
+    }
+  };
 
-const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ top, bottom, onePiece, className }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const modelImageRef = useRef<HTMLImageElement | null>(null);
-  const onResultsRef = useRef<any>(null);
+  const handleClothingImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setClothingImage(e.target.files[0]);
+    }
+  };
 
-  // Effect 1: Update the onResults callback with latest props
-  useEffect(() => {
-    onResultsRef.current = (results: any) => {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      const modelImage = modelImageRef.current;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userImage || !clothingImage) {
+      setError('Please select both a user image and a clothing image.');
+      return;
+    }
 
-      if (!results.poseLandmarks || !canvas || !ctx || !modelImage) {
-        return;
+    setIsLoading(true);
+    setError(null);
+    setResultImage(null);
+
+    const formData = new FormData();
+    formData.append('user_image', userImage);
+    formData.append('clothing_image', clothingImage);
+
+    try {
+      const response = await fetch('/api/virtual_try_on', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Something went wrong');
       }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(modelImage, 0, 0, canvas.width, canvas.height);
-
-      const drawClothing = (clothingImage: HTMLImageElement, category: 'top' | 'bottom' | 'onePiece') => {
-        const landmarks = results.poseLandmarks;
-        if (!landmarks) return;
-
-        const leftShoulder = landmarks[11];
-        const rightShoulder = landmarks[12];
-        const leftHip = landmarks[23];
-        const rightHip = landmarks[24];
-        const leftAnkle = landmarks[27];
-        const rightAnkle = landmarks[28];
-
-        const imageAspectRatio = clothingImage.naturalWidth / clothingImage.naturalHeight;
-
-        if (category === 'top' && leftShoulder && rightShoulder && leftHip && rightHip) {
-            const torsoWidth = Math.abs(rightShoulder.x - leftShoulder.x) * canvas.width;
-            const torsoHeight = Math.abs(leftHip.y - leftShoulder.y) * canvas.height;
-            const centerX = ((leftShoulder.x + rightShoulder.x) / 2) * canvas.width;
-            const topY = leftShoulder.y * canvas.height;
-
-            const scaleFactor = 2.2; // Reverted to previous correct size
-            const finalWidth = torsoWidth * scaleFactor;
-            const finalHeight = finalWidth / imageAspectRatio;
-            const yOffset = torsoHeight * 0.40; // Reverted to previous correct position
-
-            ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY - yOffset, finalWidth, finalHeight);
-
-        } else if (category === 'bottom' && leftHip && rightHip && leftAnkle && rightAnkle) {
-            const legHeight = Math.abs(leftAnkle.y - leftHip.y) * canvas.height;
-            const hipWidth = Math.abs(rightHip.x - leftHip.x) * canvas.width;
-            const centerX = ((leftHip.x + rightHip.x) / 2) * canvas.width;
-            const topY = leftHip.y * canvas.height;
-            
-            const heightScaleFactor = 1.1; // Made bottoms longer to reach ankles
-            const widthScaleFactor = 1.9; // Made bottoms wider to cover legs
-            const finalHeight = legHeight * heightScaleFactor;
-            const finalWidth = hipWidth * widthScaleFactor;
-            const yOffset = legHeight * 0.02; // Fine-tuned position
-
-            ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY - yOffset, finalWidth, finalHeight);
-
-        } else if (category === 'onePiece' && leftShoulder && rightShoulder && leftAnkle && rightAnkle) {
-            const bodyHeight = Math.abs(leftAnkle.y - leftShoulder.y) * canvas.height;
-            const centerX = ((leftShoulder.x + rightShoulder.x) / 2) * canvas.width;
-            const topY = leftShoulder.y * canvas.height;
-            
-            const scaleFactor = 1.1;
-            const finalHeight = bodyHeight * scaleFactor;
-            const finalWidth = finalHeight * imageAspectRatio;
-
-            ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY, finalWidth, finalHeight);
-        }
-      };
-
-      const imagesToLoad = [];
-      if (top) imagesToLoad.push({ src: top, category: 'top' });
-      if (bottom) imagesToLoad.push({ src: bottom, category: 'bottom' });
-      if (onePiece) imagesToLoad.push({ src: onePiece, category: 'onePiece' });
-
-      imagesToLoad.forEach(item => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = item.src;
-        img.onload = () => {
-          drawClothing(img, item.category as any);
-        };
-      });
-    };
-  }, [top, bottom, onePiece]);
-
-  // Effect 2: Lazy initialize Pose singleton, runs only once
-  useEffect(() => {
-    const modelImage = new Image();
-    modelImage.crossOrigin = 'anonymous';
-    modelImage.src = '/model-removebg-preview.png';
-    modelImageRef.current = modelImage;
-
-    const canvas = canvasRef.current;
-    if (canvas) {
-        modelImage.onload = () => {
-            if (!canvasRef.current) return; // Guard against unmount
-            canvas.width = modelImage.width;
-            canvas.height = modelImage.height;
-
-            // Lazy initialization of Pose
-            if (!window.poseInstance) {
-                const pose = new Pose({
-                    locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
-                });
-                pose.setOptions({
-                    modelComplexity: 1,
-                    smoothLandmarks: true,
-                    enableSegmentation: true,
-                    smoothSegmentation: true,
-                    minDetectionConfidence: 0.5,
-                    minTrackingConfidence: 0.5,
-                });
-                window.poseInstance = pose;
-            }
-
-            window.poseInstance.onResults((results: any) => {
-                if (onResultsRef.current) {
-                    onResultsRef.current(results);
-                }
-            });
-
-            // Initial detection
-            if (window.poseInstance) {
-                window.poseInstance.send({ image: modelImage });
-            }
-        };
+      const data = await response.json();
+      setResultImage(data.result_url);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
-    // No cleanup function is returned to keep the instance alive.
-  }, []);
+  };
 
-  // Effect 3: Re-run pose detection when props change
-  useEffect(() => {
-    const modelImage = modelImageRef.current;
-    if (window.poseInstance && modelImage && modelImage.complete) {
-        window.poseInstance.send({ image: modelImage });
-    }
-  }, [top, bottom, onePiece]);
+  return (
+    <div className="p-4 max-w-lg mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Virtual Try-On</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="user-image" className="block text-sm font-medium text-gray-700">
+            Your Photo
+          </label>
+          <input
+            id="user-image"
+            type="file"
+            accept="image/png"
+            onChange={handleUserImageChange}
+            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+          />
+        </div>
+        <div>
+          <label htmlFor="clothing-image" className="block text-sm font-medium text-gray-700">
+            Clothing Item
+          </label>
+          <input
+            id="clothing-image"
+            type="file"
+            accept="image/png"
+            onChange={handleClothingImageChange}
+            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={isLoading || !userImage || !clothingImage}
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400"
+        >
+          {isLoading ? 'Generating...' : 'Try It On'}
+        </button>
+      </form>
 
-  return <canvas ref={canvasRef} className={className} />;
+      {error && <p className="mt-4 text-red-500">Error: {error}</p>}
+
+      {isLoading && (
+        <div className="mt-4 text-center">
+          <p>Processing... this may take a minute.</p>
+        </div>
+      )}
+
+      {resultImage && (
+        <div className="mt-6">
+          <h3 className="text-xl font-bold mb-2">Result</h3>
+          <img src={resultImage} alt="Virtual try-on result" className="w-full rounded-lg shadow-md" />
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default VirtualTryOn;

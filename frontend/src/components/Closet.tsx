@@ -9,12 +9,11 @@ interface ClothingItem {
 }
 
 interface ClosetProps {
-  onSelectItem: (item: ClothingItem) => void;
   clothingItems: ClothingItem[];
   setClothingItems: React.Dispatch<React.SetStateAction<ClothingItem[]>>;
 }
 
-export default function Closet({ onSelectItem, clothingItems, setClothingItems }: ClosetProps) {
+export default function Closet({ clothingItems, setClothingItems }: ClosetProps) {
   const [activeCategory, setActiveCategory] = useState<'top' | 'bottom' | 'one-piece'>('top');
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -86,7 +85,6 @@ export default function Closet({ onSelectItem, clothingItems, setClothingItems }
           {filteredItems.map((item) => (
             <div 
               key={item.id} 
-              onClick={() => onSelectItem(item)}
               className="flex-shrink-0 w-32 h-32 border border-gray-200 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
             >
               <img 

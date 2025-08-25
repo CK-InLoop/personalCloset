@@ -3,14 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import VirtualTryOn from '../components/VirtualTryOn';
 import Closet from '../components/Closet';
-import ClothingScroller from '../components/ClothingScroller';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [selectedTop, setSelectedTop] = useState<string>('');
-  const [selectedBottom, setSelectedBottom] = useState<string>('');
-  const [selectedOnePiece, setSelectedOnePiece] = useState<string>('');
   const [clothingItems, setClothingItems] = useState<any[]>([]);
 
   const handleLogout = async () => {
@@ -25,20 +21,6 @@ export default function Dashboard() {
   if (!user) {
     return <div>Loading...</div>;
   }
-
-  const handleSelectItem = (item: any) => {
-    if (item.category === 'top') {
-      setSelectedTop(item.imageUrl);
-      setSelectedOnePiece('');
-    } else if (item.category === 'bottom') {
-      setSelectedBottom(item.imageUrl);
-      setSelectedOnePiece('');
-    } else if (item.category === 'one-piece') {
-      setSelectedOnePiece(item.imageUrl);
-      setSelectedTop('');
-      setSelectedBottom('');
-    }
-  };
 
   return (
     <div className="h-screen bg-gray-100 flex flex-col">
@@ -71,31 +53,16 @@ export default function Dashboard() {
       </nav>
 
       <div className="py-10 flex-grow overflow-y-auto">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            {/* Outfit Preview Section */}
-            <div className="bg-white p-6 rounded-lg shadow mb-8">
-              <div className="flex flex-col items-center">
-                <div className="relative w-full max-w-xs h-96">
-                  <VirtualTryOn 
-                    top={selectedTop}
-                    bottom={selectedBottom}
-                    onePiece={selectedOnePiece}
-                    className="w-full h-full"
-                  />
-                </div>
-                
-                <ClothingScroller items={clothingItems} onSelectItem={handleSelectItem} category="top" />
-                <ClothingScroller items={clothingItems} onSelectItem={handleSelectItem} category="bottom" />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Virtual Try-On Section */}
+          <div className="bg-white p-6 rounded-lg shadow">
+             <VirtualTryOn />
+          </div>
 
-              </div>
-            </div>
-
-            {/* Closet Section */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Your Closet</h2>
-              <Closet onSelectItem={handleSelectItem} clothingItems={clothingItems} setClothingItems={setClothingItems} />
-            </div>
+          {/* Closet Section */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Your Closet</h2>
+            <Closet clothingItems={clothingItems} setClothingItems={setClothingItems} />
           </div>
         </main>
       </div>
