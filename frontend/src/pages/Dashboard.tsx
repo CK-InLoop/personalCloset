@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Avatar from '../components/Avatar';
+import VirtualTryOn from '../components/VirtualTryOn';
 import Closet from '../components/Closet';
 import ClothingScroller from '../components/ClothingScroller';
 
@@ -77,7 +77,7 @@ export default function Dashboard() {
             <div className="bg-white p-6 rounded-lg shadow mb-8">
               <div className="flex flex-col items-center">
                 <div className="relative w-full max-w-xs h-96">
-                  <Avatar 
+                  <VirtualTryOn 
                     top={selectedTop}
                     bottom={selectedBottom}
                     onePiece={selectedOnePiece}
