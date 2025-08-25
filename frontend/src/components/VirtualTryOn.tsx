@@ -16,6 +16,12 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ top, bottom, onePiece, clas
   // This effect initializes the Pose instance and sets up the model image.
   // It runs only once when the component mounts.
   useEffect(() => {
+    // Ensure we have a clean slate on hot-reload
+    if (poseRef.current) {
+      poseRef.current.close();
+      poseRef.current = null;
+    }
+
     const pose = new Pose({
       locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
     });
@@ -39,15 +45,21 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ top, bottom, onePiece, clas
     const canvas = canvasRef.current;
     if (canvas) {
         modelImage.onload = () => {
+            if (!canvasRef.current) return; // Component might have unmounted
             canvas.width = modelImage.width;
             canvas.height = modelImage.height;
             // Initial pose detection
-            pose.send({ image: modelImage });
+            if (poseRef.current) {
+                poseRef.current.send({ image: modelImage });
+            }
         };
     }
 
     return () => {
-      pose.close();
+      if (poseRef.current) {
+        poseRef.current.close();
+        poseRef.current = null;
+      }
     };
   }, []);
 
@@ -80,36 +92,45 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ top, bottom, onePiece, clas
         const rightShoulder = landmarks[12];
         const leftHip = landmarks[23];
         const rightHip = landmarks[24];
-        const leftKnee = landmarks[25];
-        const rightKnee = landmarks[26];
+        const leftAnkle = landmarks[27];
+        const rightAnkle = landmarks[28];
+
+        const imageAspectRatio = clothingImage.naturalWidth / clothingImage.naturalHeight;
 
         if (category === 'top' && leftShoulder && rightShoulder && leftHip && rightHip) {
-          const torsoWidth = Math.abs(rightShoulder.x - leftShoulder.x) * canvas.width;
-          const torsoHeight = Math.abs(leftHip.y - leftShoulder.y) * canvas.height;
-          const centerX = ((leftShoulder.x + rightShoulder.x) / 2) * canvas.width;
-          const topY = leftShoulder.y * canvas.height;
-          const scaleFactor = 1.5;
-          const finalWidth = torsoWidth * scaleFactor;
-          const finalHeight = torsoHeight * 1.2;
-          ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY, finalWidth, finalHeight);
-        } else if (category === 'bottom' && leftHip && rightHip && leftKnee && rightKnee) {
-          const hipWidth = Math.abs(rightHip.x - leftHip.x) * canvas.width;
-          const legHeight = Math.abs(leftKnee.y - leftHip.y) * canvas.height;
-          const centerX = ((leftHip.x + rightHip.x) / 2) * canvas.width;
-          const topY = leftHip.y * canvas.height;
-          const scaleFactor = 1.2;
-          const finalWidth = hipWidth * scaleFactor;
-          const finalHeight = legHeight * 1.1;
-          ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY, finalWidth, finalHeight);
-        } else if (category === 'onePiece' && leftShoulder && rightShoulder && leftKnee && rightKnee) {
-          const bodyWidth = Math.abs(rightShoulder.x - leftShoulder.x) * canvas.width;
-          const bodyHeight = Math.abs(leftKnee.y - leftShoulder.y) * canvas.height;
-          const centerX = ((leftShoulder.x + rightShoulder.x) / 2) * canvas.width;
-          const topY = leftShoulder.y * canvas.height;
-          const scaleFactor = 1.5;
-          const finalWidth = bodyWidth * scaleFactor;
-          const finalHeight = bodyHeight * 1.05;
-          ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY, finalWidth, finalHeight);
+            const torsoWidth = Math.abs(rightShoulder.x - leftShoulder.x) * canvas.width;
+            const torsoHeight = Math.abs(leftHip.y - leftShoulder.y) * canvas.height;
+            const centerX = ((leftShoulder.x + rightShoulder.x) / 2) * canvas.width;
+            const topY = leftShoulder.y * canvas.height;
+
+            const scaleFactor = 1.5; 
+            const finalWidth = torsoWidth * scaleFactor;
+            const finalHeight = finalWidth / imageAspectRatio;
+            const yOffset = torsoHeight * 0.1; // Adjust vertical position
+
+            ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY - yOffset, finalWidth, finalHeight);
+
+        } else if (category === 'bottom' && leftHip && rightHip && leftAnkle && rightAnkle) {
+            const legHeight = Math.abs(leftAnkle.y - leftHip.y) * canvas.height;
+            const centerX = ((leftHip.x + rightHip.x) / 2) * canvas.width;
+            const topY = leftHip.y * canvas.height;
+            
+            const scaleFactor = 1.1;
+            const finalHeight = legHeight * scaleFactor;
+            const finalWidth = finalHeight * imageAspectRatio;
+
+            ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY, finalWidth, finalHeight);
+
+        } else if (category === 'onePiece' && leftShoulder && rightShoulder && leftAnkle && rightAnkle) {
+            const bodyHeight = Math.abs(leftAnkle.y - leftShoulder.y) * canvas.height;
+            const centerX = ((leftShoulder.x + rightShoulder.x) / 2) * canvas.width;
+            const topY = leftShoulder.y * canvas.height;
+            
+            const scaleFactor = 1.05;
+            const finalHeight = bodyHeight * scaleFactor;
+            const finalWidth = finalHeight * imageAspectRatio;
+
+            ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY, finalWidth, finalHeight);
         }
       };
 
@@ -119,11 +140,14 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ top, bottom, onePiece, clas
       if (bottom) imagesToLoad.push({ src: bottom, category: 'bottom' });
       if (onePiece) imagesToLoad.push({ src: onePiece, category: 'onePiece' });
 
-      let loadedCount = 0;
       if (imagesToLoad.length === 0) {
+        // If no clothes are selected, just draw the model
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(modelImage, 0, 0, canvas.width, canvas.height);
         return;
       }
 
+      let loadedCount = 0;
       imagesToLoad.forEach(item => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
