@@ -53,22 +53,24 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ top, bottom, onePiece, clas
             const centerX = ((leftShoulder.x + rightShoulder.x) / 2) * canvas.width;
             const topY = leftShoulder.y * canvas.height;
 
-            const scaleFactor = 1.7;
+            const scaleFactor = 2.2; // Reverted to previous correct size
             const finalWidth = torsoWidth * scaleFactor;
             const finalHeight = finalWidth / imageAspectRatio;
-            const yOffset = torsoHeight * 0.15;
+            const yOffset = torsoHeight * 0.40; // Reverted to previous correct position
 
             ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY - yOffset, finalWidth, finalHeight);
 
         } else if (category === 'bottom' && leftHip && rightHip && leftAnkle && rightAnkle) {
             const legHeight = Math.abs(leftAnkle.y - leftHip.y) * canvas.height;
+            const hipWidth = Math.abs(rightHip.x - leftHip.x) * canvas.width;
             const centerX = ((leftHip.x + rightHip.x) / 2) * canvas.width;
             const topY = leftHip.y * canvas.height;
             
-            const scaleFactor = 1.0;
-            const finalHeight = legHeight * scaleFactor;
-            const finalWidth = finalHeight * imageAspectRatio;
-            const yOffset = legHeight * 0.05;
+            const heightScaleFactor = 1.1; // Made bottoms longer to reach ankles
+            const widthScaleFactor = 1.9; // Made bottoms wider to cover legs
+            const finalHeight = legHeight * heightScaleFactor;
+            const finalWidth = hipWidth * widthScaleFactor;
+            const yOffset = legHeight * 0.02; // Fine-tuned position
 
             ctx.drawImage(clothingImage, centerX - finalWidth / 2, topY - yOffset, finalWidth, finalHeight);
 
@@ -101,31 +103,8 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ top, bottom, onePiece, clas
     };
   }, [top, bottom, onePiece]);
 
-  // Effect 2: Initialize Pose singleton, runs only once
+  // Effect 2: Lazy initialize Pose singleton, runs only once
   useEffect(() => {
-    if (!window.poseInstance) {
-        const pose = new Pose({
-            locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
-        });
-
-        pose.setOptions({
-            modelComplexity: 1,
-            smoothLandmarks: true,
-            enableSegmentation: true,
-            smoothSegmentation: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5,
-        });
-
-        window.poseInstance = pose;
-    }
-
-    window.poseInstance.onResults((results: any) => {
-        if (onResultsRef.current) {
-            onResultsRef.current(results);
-        }
-    });
-
     const modelImage = new Image();
     modelImage.crossOrigin = 'anonymous';
     modelImage.src = '/model-removebg-preview.png';
@@ -134,15 +113,39 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ top, bottom, onePiece, clas
     const canvas = canvasRef.current;
     if (canvas) {
         modelImage.onload = () => {
-            if (!canvasRef.current) return;
+            if (!canvasRef.current) return; // Guard against unmount
             canvas.width = modelImage.width;
             canvas.height = modelImage.height;
+
+            // Lazy initialization of Pose
+            if (!window.poseInstance) {
+                const pose = new Pose({
+                    locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+                });
+                pose.setOptions({
+                    modelComplexity: 1,
+                    smoothLandmarks: true,
+                    enableSegmentation: true,
+                    smoothSegmentation: true,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5,
+                });
+                window.poseInstance = pose;
+            }
+
+            window.poseInstance.onResults((results: any) => {
+                if (onResultsRef.current) {
+                    onResultsRef.current(results);
+                }
+            });
+
+            // Initial detection
             if (window.poseInstance) {
                 window.poseInstance.send({ image: modelImage });
             }
         };
     }
-    // No cleanup function is returned. This is intentional to keep the instance alive.
+    // No cleanup function is returned to keep the instance alive.
   }, []);
 
   // Effect 3: Re-run pose detection when props change

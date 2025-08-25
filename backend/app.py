@@ -44,10 +44,9 @@ def create_app():
     login_manager.login_view = 'auth.login'
 
     # Create uploads directory if it doesn't exist
-    UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
-    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['UPLOAD_FOLDER'] = os.path.join(app.instance_path, '..', 'uploads')
+    app.config['PYTHON_EXECUTABLE'] = os.path.join(os.path.dirname(__file__), '.venv', 'Scripts', 'python.exe')
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
     # Import and register blueprints
     from auth import auth_bp
